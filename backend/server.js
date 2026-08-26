@@ -11,11 +11,11 @@ app.use(express.json());
 
 // Database Connection Pool
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || '127.0.0.1',
+  host: process.env.DB_HOST || 'amigowebster.in',
   port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'buildit_db',
+  user: process.env.DB_USER || 'amigoweb_build',
+  password: process.env.DB_PASSWORD || 'Aammigo@123',
+  database: process.env.DB_NAME || 'amigoweb_build',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
