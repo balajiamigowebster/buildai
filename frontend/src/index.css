@@ -1123,7 +1123,7 @@ body {
     grid-column: span 1;
   }
   .content-area {
-    padding: 16px;
+    padding: 16px 16px 100px 16px;
   }
   .detail-metrics-grid {
     grid-template-columns: 1fr 1fr;
