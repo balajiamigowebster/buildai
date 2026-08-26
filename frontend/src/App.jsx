@@ -18,12 +18,26 @@ import {
   User,
   Activity,
   CreditCard,
-  Briefcase
+  Briefcase,
+  Menu,
+  Megaphone,
+  Bell,
+  Shield,
+  Sparkles,
+  Sliders
 } from 'lucide-react';
 
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:5000/api'
   : '/api';
+
+const getProjectIcon = (name) => {
+  if (name.includes('Horizon') || name.includes('Grand')) return 'uilding';
+  if (name.includes('Tech Park') || name.includes('Emerald')) return 'Layers';
+  if (name.includes('Villas') || name.includes('Aura')) return 'Home';
+  if (name.includes('Logistics') || name.includes('Hub') || name.includes('Vanguard')) return 'Boxes';
+  return name.substring(0, 2);
+};
 
 function App() {
   // Application State
@@ -33,6 +47,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('projects');
 
   // Modals Open State
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -265,21 +281,100 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Sidebar Overlay & Drawer */}
+      <div className={`sidebar-overlay ${drawerOpen ? 'open' : ''}`} onClick={() => setDrawerOpen(false)}></div>
+      <div className={`sidebar-drawer ${drawerOpen ? 'open' : ''}`}>
+        <div className="drawer-header">
+          <div className="drawer-brand">
+            <span className="drawer-title">
+              <Briefcase size={22} style={{ color: 'var(--primary)' }} /> Buildit.AI OS
+            </span>
+            <span className="drawer-subtitle">Construction Intelligence OS</span>
+          </div>
+          <button className="drawer-close-btn" onClick={() => setDrawerOpen(false)}>
+            <X size={20} />
+          </button>
+        </div>
+        <div className="drawer-menu">
+          <button className={`drawer-menu-item ${activeTab === 'projects' ? 'active' : ''}`} onClick={() => { setActiveTab('projects'); setDrawerOpen(false); }}>
+            <Briefcase className="menu-icon" size={20} />
+            <div className="menu-text">
+              <span className="menu-title">Projects & Sites</span>
+              <span className="menu-desc">Portfolio dashboard & project switcher</span>
+            </div>
+          </button>
+          <button className={`drawer-menu-item ${activeTab === 'labour' ? 'active' : ''}`} onClick={() => { setActiveTab('labour'); setDrawerOpen(false); }}>
+            <User className="menu-icon" size={20} />
+            <div className="menu-text">
+              <span className="menu-title">Labour Hub & Muster</span>
+              <span className="menu-desc">1-Tap attendance & contractor roster</span>
+            </div>
+          </button>
+          <button className="drawer-menu-item" onClick={() => { setShowMaterialModal(true); setDrawerOpen(false); }}>
+            <Plus className="menu-icon" size={20} />
+            <div className="menu-text">
+              <span className="menu-title">Quick Log Entry</span>
+              <span className="menu-desc">Material bills, muster & money receipts</span>
+            </div>
+          </button>
+          <button className={`drawer-menu-item ${activeTab === 'ai' ? 'active' : ''}`} onClick={() => { setActiveTab('ai'); setDrawerOpen(false); }}>
+            <Sparkles className="menu-icon" size={20} />
+            <div className="menu-text">
+              <span className="menu-title">AI Partner</span>
+              <span className="menu-desc">Advisor, voice & typing notes, site audit</span>
+            </div>
+          </button>
+          <button className="drawer-menu-item" onClick={() => { alert('Financial Security audit trail is active.'); setDrawerOpen(false); }}>
+            <Shield className="menu-icon" size={20} />
+            <div className="menu-text">
+              <span className="menu-title">Audit Trail & Financial Security</span>
+              <span className="menu-desc">Immutable compliance log & cold-storage...</span>
+            </div>
+          </button>
+          <button className={`drawer-menu-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => { setActiveTab('settings'); setDrawerOpen(false); }}>
+            <Sliders className="menu-icon" size={20} />
+            <div className="menu-text">
+              <span className="menu-title">Settings & Admin Hub</span>
+              <span className="menu-desc">Operations console & master rate catalog</span>
+            </div>
+          </button>
+        </div>
+        <div className="drawer-footer">
+          <div className="drawer-user-info">
+            <div className="drawer-avatar">T</div>
+            <div className="drawer-user-text">
+              <span className="drawer-username">Thiru (Admin)</span>
+              <span className="drawer-useremail">Thiruyh@Gmail.com</span>
+            </div>
+          </div>
+          <div className="drawer-security-badge">
+            <span>🔒 Production Security Active (Firebase Auth & Firestore Rules)</span>
+          </div>
+        </div>
+      </div>
+
       {/* Header bar */}
       <header className="app-header">
         <div className="brand-section">
-          <div className="brand-logo-container">B</div>
+          <button className="header-btn" style={{ marginRight: '8px' }} onClick={() => setDrawerOpen(true)}>
+            <Menu size={20} />
+          </button>
+          <div className="brand-logo-container" style={{ background: '#1e3a8a' }}>B</div>
           <div className="brand-name">
             Buildit.AI
             <span className="brand-badge">OS</span>
           </div>
         </div>
         <div className="header-actions">
-          <button className="header-btn" title="Alerts">
-            <AlertTriangle size={18} />
+          <button className="header-btn" title="Announcements" onClick={() => alert('Announcements: Megaphone clicked.')}>
+            <Megaphone size={18} />
             <span className="header-btn-badge">1</span>
           </button>
-          <div className="user-profile" title="User Profile">T</div>
+          <button className="header-btn" title="Alerts" onClick={() => alert('Alerts: Bell clicked.')}>
+            <Bell size={18} />
+            <span className="header-btn-badge">1</span>
+          </button>
+          <div className="user-profile" style={{ background: '#7c3aed', color: 'white' }} title="User Profile">T</div>
         </div>
       </header>
 
@@ -291,8 +386,9 @@ function App() {
             </div>
           )}
 
-          {selectedProjectId === null ? (
-            /* --- DASHBOARD VIEW --- */
+          {activeTab === 'projects' ?
+            selectedProjectId === null ? (
+              /* --- DASHBOARD VIEW --- */
             <div>
               {/* Safety Alert Banner */}
               {showSafetyBanner && (
@@ -328,19 +424,16 @@ function App() {
                   activeProjects.map(p => (
                     <div className="project-card" key={p.id} onClick={() => setSelectedProjectId(p.id)}>
                       <div className="project-card-status-dot active"></div>
-                      <div className="project-icon-wrapper">{p.name.substring(0, 2)}</div>
+                      <div className="project-icon-wrapper">{getProjectIcon(p.name)}</div>
                       <div className="project-card-title">{p.name}</div>
                       <div className="project-card-location">{p.location}</div>
                       <div className="project-card-footer">
-                        <div className="project-card-amount">
-                          <span className="project-card-amount-label">Spent Capital</span>
+                        <div className="project-card-amount-row">
                           <span className="project-card-amount-value">{formatCurrency(p.live_capital_spent)}</span>
-                        </div>
-                        <div className="project-card-progress-wrapper">
                           <span className="project-card-progress-percent">{p.progress}%</span>
-                          <div className="progress-bar-container">
-                            <div className="progress-bar-fill" style={{ width: `${p.progress}%` }}></div>
-                          </div>
+                        </div>
+                        <div className="progress-bar-container" style={{ width: '100%' }}>
+                          <div className="progress-bar-fill" style={{ width: `${p.progress}%` }}></div>
                         </div>
                       </div>
                     </div>
@@ -360,15 +453,15 @@ function App() {
                   upcomingProjects.map(p => (
                     <div className="project-card" key={p.id} onClick={() => setSelectedProjectId(p.id)}>
                       <div className="project-card-status-dot upcoming"></div>
-                      <div className="project-icon-wrapper">{p.name.substring(0, 2)}</div>
+                      <span className="project-card-upcoming-tag" style={{ position: 'absolute', top: '16px', right: '16px' }}>Upcoming</span>
+                      <div className="project-icon-wrapper">{getProjectIcon(p.name)}</div>
                       <div className="project-card-title">{p.name}</div>
                       <div className="project-card-location">{p.location}</div>
                       <div className="project-card-footer">
-                        <div className="project-card-amount">
-                          <span className="project-card-amount-label">Sanctioned Budget</span>
-                          <span className="project-card-amount-value">{formatCurrency(p.budget)}</span>
+                        <div className="upcoming-phase-banner">
+                          <div>{p.id === 3 ? 'Foundation & Plinth Beams' : 'Land Levelling & Boundary Wall'}</div>
+                          <div style={{ fontSize: '11px', color: '#b45309', opacity: 0.8, marginTop: '2px' }}>Start: {p.start_date ? formatDate(p.start_date) : '2026-09-01'}</div>
                         </div>
-                        <span className="project-card-upcoming-tag">Upcoming</span>
                       </div>
                     </div>
                   ))
@@ -387,15 +480,14 @@ function App() {
                   completedProjects.map(p => (
                     <div className="project-card" key={p.id} onClick={() => setSelectedProjectId(p.id)}>
                       <div className="project-card-status-dot completed"></div>
-                      <div className="project-icon-wrapper">{p.name.substring(0, 2)}</div>
+                      <div className="project-icon-wrapper">{getProjectIcon(p.name)}</div>
                       <div className="project-card-title">{p.name}</div>
                       <div className="project-card-location">{p.location}</div>
                       <div className="project-card-footer">
-                        <div className="project-card-amount">
-                          <span className="project-card-amount-label">Final Cost</span>
+                        <div className="project-card-amount-row">
                           <span className="project-card-amount-value">{formatCurrency(p.live_capital_spent)}</span>
+                          <span className="project-card-upcoming-tag" style={{ background: '#e0f2fe', color: '#0369a1', position: 'static' }}>Delivered</span>
                         </div>
-                        <span className="project-card-upcoming-tag" style={{ background: '#e0f2fe', color: '#0369a1' }}>Delivered</span>
                       </div>
                     </div>
                   ))
@@ -681,8 +773,162 @@ function App() {
 
               </div>
             )
+          ) : activeTab === 'labour' ? (
+            /* --- LABOUR TAB --- */
+            <div className="labour-tab-content">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h1 style={{ fontSize: '24px', fontWeight: '800' }}>Labour Hub & Muster</h1>
+                <button className="btn btn-primary" onClick={() => alert('Add worker feature active under administrator control.')}>
+                  <Plus size={16} /> Add Contractor
+                </button>
+              </div>
+              <div className="metrics-row" style={{ marginTop: '0', marginBottom: '32px' }}>
+                <div className="metric-card sanctioned" style={{ borderLeftColor: 'var(--primary)' }}>
+                  <span className="metric-label">Total Roster Strength</span>
+                  <span className="metric-value">124 Men</span>
+                  <span className="metric-desc primary-text">Across 4 live construction sites</span>
+                </div>
+                <div className="metric-card logged" style={{ borderLeftColor: 'var(--success)' }}>
+                  <span className="metric-label">Today's Muster Present</span>
+                  <span className="metric-value">98 Present</span>
+                  <span className="metric-desc success-text">79% Daily Attendance Rate</span>
+                </div>
+                <div className="metric-card footprint" style={{ borderLeftColor: 'var(--info)' }}>
+                  <span className="metric-label">Muster Accrued Cost</span>
+                  <span className="metric-value">{formatCurrency(78400)}</span>
+                  <span className="metric-desc info-text">Direct wages calculated automatically</span>
+                </div>
+              </div>
+              <div className="ledger-card">
+                <div className="table-responsive">
+                  <table className="ledger-table">
+                    <thead>
+                      <tr>
+                        <th>Contractor Name</th>
+                        <th>Trade / Specialization</th>
+                        <th>Manpower Deployed</th>
+                        <th>Site / Location</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Alpha RCC Works</strong></td>
+                        <td><span className="ledger-badge-method" style={{ background: '#f1f5f9', color: '#475569', borderColor: '#e2e8f0' }}>Concrete / Rebars</span></td>
+                        <td><strong>45 Workers</strong></td>
+                        <td>Worli Sea Face, Mumbai</td>
+                        <td><span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 8px', borderRadius: '4px', background: 'var(--success-light)', color: 'var(--success-hover)', border: '1px solid #d1fae5' }}>Active</span></td>
+                        <td><button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => alert('Muster checked!')}>View Muster</button></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Deccan Bricklayers</strong></td>
+                        <td><span className="ledger-badge-method" style={{ background: '#f1f5f9', color: '#475569', borderColor: '#e2e8f0' }}>Brickwork & Plaster</span></td>
+                        <td><strong>32 Workers</strong></td>
+                        <td>Whitefield, Bengaluru</td>
+                        <td><span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 8px', borderRadius: '4px', background: 'var(--success-light)', color: 'var(--success-hover)', border: '1px solid #d1fae5' }}>Active</span></td>
+                        <td><button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => alert('Muster checked!')}>View Muster</button></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Premier MEP Systems</strong></td>
+                        <td><span className="ledger-badge-method" style={{ background: '#f1f5f9', color: '#475569', borderColor: '#e2e8f0' }}>Electrical & Plumbing</span></td>
+                        <td><strong>21 Workers</strong></td>
+                        <td>Worli Sea Face, Mumbai</td>
+                        <td><span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 8px', borderRadius: '4px', background: 'var(--success-light)', color: 'var(--success-hover)', border: '1px solid #d1fae5' }}>Active</span></td>
+                        <td><button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => alert('Muster checked!')}>View Muster</button></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'ai' ? (
+            /* --- AI TAB --- */
+            <div className="ai-tab-content">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h1 style={{ fontSize: '24px', fontWeight: '800' }}>AI Partner & Advisor</h1>
+                <span className="brand-badge" style={{ background: '#f59e0b', color: 'white', padding: '6px 12px', borderRadius: '8px', fontSize: '12px' }}>Enterprise AI Enabled</span>
+              </div>
+              <div className="ledger-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', gap: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifycontent: 'center', fontWeight: '800', flexShrink: 0 }}>AI</div>
+                  <div>
+                    <h4 style={{ fontWeight: '700', fontSize: '15px' }}>Buildit AI Project Auditor</h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>How can I help you analyze your portfolio financials, material ledgers, or safety compliances today?</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid var(--border-color)', padding: '16px', borderRadius: '12px', cursor: 'pointer' }} onClick={() => alert('Auditing portfolio budget vs spent...')}>
+                    <h5 style={{ fontWeight: '700', fontSize: '14px', color: 'var(--primary)' }}>📊 Audit Portfolio Budget vs Spent</h5>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>Generate a complete variance report comparing sanctioned budgets vs live material expenses across all projects.</p>
+                  </div>
+                  <div style={{ background: '#f8fafc', border: '1px solid var(--border-color)', padding: '16px', borderRadius: '12px', cursor: 'pointer' }} onClick={() => alert('Compiling material run-rate...')}>
+                    <h5 style={{ fontWeight: '700', fontSize: '14px', color: 'var(--success-hover)' }}>🧱 Analyze Material Run-Rate</h5>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>Identify price trends for key commodities like Cement and Steel based on recent invoice submissions.</p>
+                  </div>
+                  <div style={{ background: '#f8fafc', border: '1px solid var(--border-color)', padding: '16px', borderRadius: '12px', cursor: 'pointer' }} onClick={() => alert('Checking safety audit logs...')}>
+                    <h5 style={{ fontWeight: '700', fontSize: '14px', color: 'var(--warning-hover)' }}>⚠️ Review Safety Compliance</h5>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>Audit the safety logs and muster data for critical compliance flags or mandatory safety hazards warnings.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* --- SETTINGS TAB --- */
+            <div className="settings-tab-content">
+              <div style={{ marginBottom: '24px' }}>
+                <h1 style={{ fontSize: '24px', fontWeight: '800' }}>Settings & Admin Hub</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>Manage site configurations, credentials, and master rates.</p>
+              </div>
+              <div className="ledger-card" style={{ padding: '24px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '20px' }}>Database Settings</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Live Hostname</span>
+                    <strong style={{ fontSize: '14px' }}>amigowebster.in</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>MariaDB Port</span>
+                    <strong style={{ fontSize: '14px' }}>3306</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Connection Pool Status</span>
+                    <span style={{ fontSize: '12px', fontWeight: '700', background: 'var(--success-light)', color: 'var(--success-hover)', padding: '2px 8px', borderRadius: '4px', border: '1px solid #d1fae5' }}>Active (10 Conns)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </main>
+      </div>
+
+      {/* Bottom Navigation Bar */}
+      <div className="bottom-nav-bar">
+        <button className={`bottom-nav-item ${activeTab === 'projects' ? 'active' : ''}`} onClick={() => { setActiveTab('projects'); setSelectedProjectId(null); }}>
+          <Briefcase size={20} />
+          <span>Projects</span>
+        </button>
+        <button className={`bottom-nav-item ${activeTab === 'labour' ? 'active' : ''}`} onClick={() => setActiveTab('labour')}>
+          <User size={20} />
+          <span>Labour</span>
+        </button>
+        <button className="bottom-nav-quicklog" title="Quick Log Entry" onClick={() => {
+          if (selectedProjectId) {
+            setShowMaterialModal(true);
+          } else {
+            alert('Please select a project first to log material entries!');
+          }
+        }}>
+          <Plus size={24} />
+        </button>
+        <button className={`bottom-nav-item ${activeTab === 'ai' ? 'active' : ''}`} onClick={() => setActiveTab('ai')}>
+          <Sparkles size={20} />
+          <span>AI</span>
+        </button>
+        <button className={`bottom-nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
+          <Sliders size={20} />
+          <span>Settings</span>
+        </button>
       </div>
 
       {/* --- MODAL 1: ADD NEW PROJECT --- */}
