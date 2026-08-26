@@ -24,7 +24,9 @@ import {
   Bell,
   Shield,
   Sparkles,
-  Sliders
+  Sliders,
+  LogOut,
+  Lock
 } from 'lucide-react';
 
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -38,6 +40,45 @@ const getProjectIcon = (name) => {
   if (name.includes('Logistics') || name.includes('Hub') || name.includes('Vanguard')) return 'Boxes';
   return name.substring(0, 2);
 };
+
+const USER_ROSTER = [
+  {
+    name: 'Thiru (Admin)',
+    email: 'thiruyh@gmail.com',
+    phone: '+91 98401 23456',
+    title: 'Super Administrator & Principal PM',
+    role: 'admin',
+    avatar: 'T',
+    color: '#7c3aed'
+  },
+  {
+    name: 'Rajesh Contractor',
+    email: 'rajesh.contractor@sensesite.in',
+    phone: '+91 98401 55667',
+    title: 'MEP & RCC Works Contractor Roster Lead',
+    role: 'contractor',
+    avatar: 'R',
+    color: '#d97706'
+  },
+  {
+    name: 'Vikram Sethi (Client)',
+    email: 'vikram.sethi@ashoka.com',
+    phone: '+91 98401 88990',
+    title: 'Ashoka Living Properties - Lead Client Rep',
+    role: 'client',
+    avatar: 'V',
+    color: '#059669'
+  },
+  {
+    name: 'Priya Sharma (Client)',
+    email: 'priya.sharma@buildcorp.in',
+    phone: '+91 98401 11223',
+    title: 'Buildcorp Client PM Coordinator',
+    role: 'client',
+    avatar: 'P',
+    color: '#2563eb'
+  }
+];
 
 function App() {
   // Application State
@@ -54,6 +95,61 @@ function App() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
+
+  // Authentication & Profile States
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('buildit_user');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return USER_ROSTER[0]; // Default to Thiru (Admin)
+  });
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileTab, setProfileTab] = useState('profile'); // 'profile' or 'access'
+  const [showGoogleAuth, setShowGoogleAuth] = useState(false);
+  const [googleEmailInput, setGoogleEmailInput] = useState('');
+  const [googleNameInput, setGoogleNameInput] = useState('');
+
+  // Notifications & Announcements States
+  const [showAnnouncementsDropdown, setShowAnnouncementsDropdown] = useState(false);
+  const [showAlertsDropdown, setShowAlertsDropdown] = useState(false);
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      type: 'announcement',
+      title: 'Mandatory Double Lanyard Safety Harness',
+      desc: 'All personnel operating on Level 14 must remain 100% tied-off to static lifelines.',
+      time: '2 hours ago',
+      unread: true
+    },
+    {
+      id: 2,
+      type: 'alert',
+      title: 'MEP Steel Supplier Invoice Pending',
+      desc: 'Pending invoice ref steel-992 requires review & logging.',
+      time: '5 hours ago',
+      unread: true
+    },
+    {
+      id: 3,
+      type: 'announcement',
+      title: 'Concrete Pour Schedule',
+      desc: 'Slab pour of Level 3 at Worli Site rescheduled to tomorrow 05:00 AM.',
+      time: '1 day ago',
+      unread: false
+    }
+  ]);
+
+  // Toast System State
+  const [toasts, setToasts] = useState([]);
+
+  const triggerToast = (title, desc, type = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, title, desc, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
 
   // Form States
   const [projectForm, setProjectForm] = useState({
@@ -140,6 +236,7 @@ function App() {
   // Handle Form Submissions
   const handleCreateProject = async (e) => {
     e.preventDefault();
+    const projectName = projectForm.name;
     try {
       const res = await fetch(`${API_BASE}/projects`, {
         method: 'POST',
@@ -152,6 +249,7 @@ function App() {
         })
       });
       if (!res.ok) throw new Error('Failed to create project');
+      triggerToast('Project Created', `Successfully created project "${projectName}"`, 'success');
       setShowProjectModal(false);
       setProjectForm({
         name: '',
@@ -165,23 +263,25 @@ function App() {
       });
       loadProjects();
     } catch (err) {
-      alert(err.message);
+      triggerToast('Error', err.message, 'error');
     }
   };
 
   const handleAddReceipt = async (e) => {
     e.preventDefault();
     if (!selectedProjectId) return;
+    const amountVal = parseFloat(receiptForm.amount) || 0;
     try {
       const res = await fetch(`${API_BASE}/projects/${selectedProjectId}/receipts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...receiptForm,
-          amount: parseFloat(receiptForm.amount) || 0
+          amount: amountVal
         })
       });
       if (!res.ok) throw new Error('Failed to log client payment');
+      triggerToast('Payment Logged', `Logged payment of ${formatCurrency(amountVal)}`, 'success');
       setShowReceiptModal(false);
       setReceiptForm({
         amount: '',
@@ -191,17 +291,18 @@ function App() {
         ref_num: '',
         received_from: projectDetail?.project?.client_name.split(' (')[0] || '',
         memo: '',
-        recorded_by: 'Thiru (Admin)'
+        recorded_by: currentUser.name
       });
       loadProjectDetail(selectedProjectId);
     } catch (err) {
-      alert(err.message);
+      triggerToast('Error', err.message, 'error');
     }
   };
 
   const handleAddMaterial = async (e) => {
     e.preventDefault();
     if (!selectedProjectId) return;
+    const amountVal = parseFloat(materialForm.amount) || 0;
     try {
       const res = await fetch(`${API_BASE}/projects/${selectedProjectId}/material-bills`, {
         method: 'POST',
@@ -209,10 +310,11 @@ function App() {
         body: JSON.stringify({
           ...materialForm,
           quantity: parseFloat(materialForm.quantity) || 0,
-          amount: parseFloat(materialForm.amount) || 0
+          amount: amountVal
         })
       });
       if (!res.ok) throw new Error('Failed to log material bill');
+      triggerToast('Material Bill Logged', `Logged bill of ${formatCurrency(amountVal)}`, 'success');
       setShowMaterialModal(false);
       setMaterialForm({
         item_name: '',
@@ -227,7 +329,7 @@ function App() {
       });
       loadProjectDetail(selectedProjectId);
     } catch (err) {
-      alert(err.message);
+      triggerToast('Error', err.message, 'error');
     }
   };
 
@@ -237,9 +339,10 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/receipts/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete receipt');
+      triggerToast('Receipt Deleted', 'Payment receipt was successfully removed.', 'warning');
       loadProjectDetail(selectedProjectId);
     } catch (err) {
-      alert(err.message);
+      triggerToast('Error', err.message, 'error');
     }
   };
 
@@ -248,9 +351,10 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/material-bills/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete material bill');
+      triggerToast('Material Bill Deleted', 'Material bill was successfully removed.', 'warning');
       loadProjectDetail(selectedProjectId);
     } catch (err) {
-      alert(err.message);
+      triggerToast('Error', err.message, 'error');
     }
   };
 
@@ -278,6 +382,9 @@ function App() {
   const activeProjects = projects.filter(p => p.status === 'active');
   const upcomingProjects = projects.filter(p => p.status === 'upcoming');
   const completedProjects = projects.filter(p => p.status === 'completed');
+
+  const unreadAnnouncementsCount = notifications.filter(n => n.type === 'announcement' && n.unread).length;
+  const unreadAlertsCount = notifications.filter(n => n.type === 'alert' && n.unread).length;
 
   return (
     <div className="app-container">
@@ -340,11 +447,11 @@ function App() {
           </button>
         </div>
         <div className="drawer-footer">
-          <div className="drawer-user-info">
-            <div className="drawer-avatar">T</div>
+          <div className="drawer-user-info" style={{ cursor: 'pointer' }} onClick={() => { setShowProfileModal(true); setDrawerOpen(false); }}>
+            <div className="drawer-avatar" style={{ background: currentUser.color || '#a855f7' }}>{currentUser.avatar}</div>
             <div className="drawer-user-text">
-              <span className="drawer-username">Thiru (Admin)</span>
-              <span className="drawer-useremail">Thiruyh@Gmail.com</span>
+              <span className="drawer-username">{currentUser.name}</span>
+              <span className="drawer-useremail">{currentUser.email}</span>
             </div>
           </div>
           <div className="drawer-security-badge">
@@ -365,16 +472,97 @@ function App() {
             <span className="brand-badge">OS</span>
           </div>
         </div>
-        <div className="header-actions">
-          <button className="header-btn" title="Announcements" onClick={() => alert('Announcements: Megaphone clicked.')}>
+        <div className="header-actions" style={{ position: 'relative' }}>
+          <button 
+            className="header-btn" 
+            title="Announcements" 
+            onClick={() => { setShowAnnouncementsDropdown(!showAnnouncementsDropdown); setShowAlertsDropdown(false); }}
+          >
             <Megaphone size={18} />
-            <span className="header-btn-badge">1</span>
+            {unreadAnnouncementsCount > 0 && <span className="header-btn-badge">{unreadAnnouncementsCount}</span>}
           </button>
-          <button className="header-btn" title="Alerts" onClick={() => alert('Alerts: Bell clicked.')}>
+          {showAnnouncementsDropdown && (
+            <div className="notification-dropdown">
+              <div className="notif-header">
+                <span className="notif-title">Announcements ({unreadAnnouncementsCount} unread)</span>
+                <button className="notif-mark-all" onClick={() => {
+                  setNotifications(prev => prev.map(n => n.type === 'announcement' ? { ...n, unread: false } : n));
+                  triggerToast('Announcements', 'All announcements marked as read.', 'info');
+                }}>Mark all read</button>
+              </div>
+              <div className="notif-list">
+                {notifications.filter(n => n.type === 'announcement').length > 0 ? (
+                  notifications.filter(n => n.type === 'announcement').map(n => (
+                    <div key={n.id} className={`notif-item ${n.unread ? 'unread' : ''}`} onClick={() => {
+                      setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, unread: false } : item));
+                      alert(`${n.title}\n\n${n.desc}`);
+                    }}>
+                      <div className="notif-icon-box" style={{ background: '#eff6ff', color: '#3b82f6' }}>
+                        <Megaphone size={16} />
+                      </div>
+                      <div className="notif-content">
+                        <span className="notif-item-title">{n.title}</span>
+                        <span className="notif-item-desc">{n.desc}</span>
+                        <span className="notif-item-time">{n.time}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="notif-empty">No announcements logged.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <button 
+            className="header-btn" 
+            title="Alerts" 
+            onClick={() => { setShowAlertsDropdown(!showAlertsDropdown); setShowAnnouncementsDropdown(false); }}
+          >
             <Bell size={18} />
-            <span className="header-btn-badge">1</span>
+            {unreadAlertsCount > 0 && <span className="header-btn-badge">{unreadAlertsCount}</span>}
           </button>
-          <div className="user-profile" style={{ background: '#7c3aed', color: 'white' }} title="User Profile">T</div>
+          {showAlertsDropdown && (
+            <div className="notification-dropdown">
+              <div className="notif-header">
+                <span className="notif-title">Alerts & Warnings ({unreadAlertsCount} unread)</span>
+                <button className="notif-mark-all" onClick={() => {
+                  setNotifications(prev => prev.map(n => n.type === 'alert' ? { ...n, unread: false } : n));
+                  triggerToast('Alerts', 'All alerts marked as read.', 'info');
+                }}>Mark all read</button>
+              </div>
+              <div className="notif-list">
+                {notifications.filter(n => n.type === 'alert').length > 0 ? (
+                  notifications.filter(n => n.type === 'alert').map(n => (
+                    <div key={n.id} className={`notif-item ${n.unread ? 'unread' : ''}`} onClick={() => {
+                      setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, unread: false } : item));
+                      alert(`${n.title}\n\n${n.desc}`);
+                    }}>
+                      <div className="notif-icon-box" style={{ background: '#fffbeb', color: '#f59e0b' }}>
+                        <Bell size={16} />
+                      </div>
+                      <div className="notif-content">
+                        <span className="notif-item-title">{n.title}</span>
+                        <span className="notif-item-desc">{n.desc}</span>
+                        <span className="notif-item-time">{n.time}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="notif-empty">No alerts triggered.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div 
+            className="user-profile" 
+            style={{ background: currentUser.color || '#7c3aed', color: 'white', cursor: 'pointer' }} 
+            title="User Profile"
+            onClick={() => { setShowProfileModal(true); setProfileTab('profile'); }}
+          >
+            {currentUser.avatar}
+          </div>
         </div>
       </header>
 
@@ -1287,6 +1475,238 @@ function App() {
           </div>
         </div>
       )}
+      {/* --- PROFILE / USER CONSOLE MODAL --- */}
+      {showProfileModal && (
+        <div className="profile-modal-overlay" onClick={() => setShowProfileModal(false)}>
+          <div className="profile-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="profile-card-header">
+              <div className="profile-header-avatar" style={{ background: currentUser.color || '#a855f7' }}>
+                {currentUser.avatar}
+              </div>
+              <div className="profile-header-details">
+                <span className="profile-header-name">{currentUser.name}</span>
+                <span className="profile-header-email">{currentUser.email}</span>
+                <span className="profile-header-role-badge">{currentUser.role}</span>
+              </div>
+              <button className="profile-modal-close" onClick={() => setShowProfileModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="profile-modal-tabs">
+              <button 
+                className={`profile-modal-tab-btn ${profileTab === 'profile' ? 'active' : ''}`}
+                onClick={() => setProfileTab('profile')}
+              >
+                <User size={16} /> Profile
+              </button>
+              <button 
+                className={`profile-modal-tab-btn ${profileTab === 'access' ? 'active' : ''}`}
+                onClick={() => setProfileTab('access')}
+              >
+                <Sliders size={16} /> Access ({USER_ROSTER.length})
+              </button>
+            </div>
+
+            <div className="profile-tab-body">
+              {profileTab === 'profile' ? (
+                <>
+                  <div className="personal-details-title-row">
+                    <span className="personal-details-title">Personal Details</span>
+                    <button className="personal-details-edit-btn" onClick={() => alert('Editing personal profile is restricted under administrative governance.')}>
+                      <Edit3 size={14} /> Edit
+                    </button>
+                  </div>
+                  <div className="detail-info-row">
+                    <span className="detail-info-label">Name:</span>
+                    <span className="detail-info-value">{currentUser.name}</span>
+                  </div>
+                  <div className="detail-info-row">
+                    <span className="detail-info-label">Email:</span>
+                    <span className="detail-info-value">{currentUser.email}</span>
+                  </div>
+                  <div className="detail-info-row">
+                    <span className="detail-info-label">Phone:</span>
+                    <span className="detail-info-value">{currentUser.phone}</span>
+                  </div>
+                  <div className="detail-info-row">
+                    <span className="detail-info-label">Title:</span>
+                    <span className="detail-info-value">{currentUser.title}</span>
+                  </div>
+
+                  <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <button 
+                      className="btn btn-secondary" 
+                      style={{ width: '100%', justifyContent: 'center', gap: '8px', border: '1px solid var(--primary)', color: 'var(--primary)', background: 'var(--primary-light)' }}
+                      onClick={() => { setShowGoogleAuth(true); setShowProfileModal(false); }}
+                    >
+                      <Lock size={16} /> Firebase Sign In / Register
+                    </button>
+                    <button 
+                      className="btn btn-secondary" 
+                      style={{ width: '100%', justifyContent: 'center', gap: '8px', color: '#ef4444', borderColor: '#fee2e2', background: '#fef2f2' }}
+                      onClick={() => {
+                        const guestUser = {
+                          name: 'Guest User',
+                          email: 'guest@buildai.os',
+                          phone: 'N/A',
+                          title: 'Public Viewer / Auditor',
+                          role: 'guest',
+                          avatar: 'G',
+                          color: '#64748b'
+                        };
+                        setCurrentUser(guestUser);
+                        localStorage.setItem('buildit_user', JSON.stringify(guestUser));
+                        triggerToast('Auth Sync', 'Signed out. Mode set to Guest.', 'warning');
+                        setShowProfileModal(false);
+                      }}
+                    >
+                      <LogOut size={16} /> Sign Out
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="user-access-list">
+                  <div className="personal-details-title-row">
+                    <span className="personal-details-title">Users & RBAC ({USER_ROSTER.length})</span>
+                    <button className="personal-details-edit-btn" onClick={() => alert('Add User function active under Super-Admin role.')}>
+                      + Add User
+                    </button>
+                  </div>
+                  {USER_ROSTER.map(u => (
+                    <div 
+                      key={u.email} 
+                      className={`user-access-item ${currentUser.email === u.email ? 'active' : ''}`}
+                      onClick={() => {
+                        setCurrentUser(u);
+                        localStorage.setItem('buildit_user', JSON.stringify(u));
+                        triggerToast('Auth Sync', `Logged in as ${u.name}`, 'success');
+                        setShowProfileModal(false);
+                      }}
+                    >
+                      <div className="user-access-info">
+                        <div className="user-access-avatar" style={{ background: u.color }}>
+                          {u.avatar}
+                        </div>
+                        <div className="user-access-meta">
+                          <span className="user-access-name">{u.name}</span>
+                          <span className="user-access-email">{u.email}</span>
+                        </div>
+                      </div>
+                      <span className="profile-header-role-badge" style={{ marginTop: '0', background: u.role === 'admin' ? 'rgba(124, 58, 237, 0.15)' : 'rgba(71, 85, 105, 0.1)' }}>
+                        {u.role}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- GOOGLE/FIREBASE SIGN IN CHOOSER POPUP --- */}
+      {showGoogleAuth && (
+        <div className="google-auth-overlay" onClick={() => setShowGoogleAuth(false)}>
+          <div className="google-auth-card" onClick={e => e.stopPropagation()}>
+            <div className="google-logo-container">
+              <svg width="24" height="24" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+            </div>
+            <h3 className="google-title">Sign in with Google</h3>
+            <p className="google-subtitle">Choose an account to continue to Buildit.AI OS</p>
+
+            <div className="google-accounts-list">
+              {USER_ROSTER.map(u => (
+                <button 
+                  key={u.email}
+                  className="google-account-btn"
+                  onClick={() => {
+                    setCurrentUser(u);
+                    localStorage.setItem('buildit_user', JSON.stringify(u));
+                    triggerToast('Google Authentication', `Successfully logged in as ${u.name}`, 'success');
+                    setShowGoogleAuth(false);
+                  }}
+                >
+                  <div className="google-account-avatar" style={{ background: u.color }}>
+                    {u.avatar}
+                  </div>
+                  <div className="google-account-details">
+                    <span className="google-account-name">{u.name}</span>
+                    <span className="google-account-email">{u.email}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="google-divider">
+              <span>or use custom email</span>
+            </div>
+
+            <form className="google-custom-login-form" onSubmit={e => {
+              e.preventDefault();
+              if (!googleEmailInput || !googleNameInput) return;
+              const initials = googleNameInput.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U';
+              const customUser = {
+                name: googleNameInput,
+                email: googleEmailInput,
+                phone: '+91 99999 88888',
+                title: 'Project Auditor & Guest PM',
+                role: 'client',
+                avatar: initials,
+                color: '#475569'
+              };
+              setCurrentUser(customUser);
+              localStorage.setItem('buildit_user', JSON.stringify(customUser));
+              triggerToast('Google Authentication', `Logged in with Google account: ${customUser.email}`, 'success');
+              setShowGoogleAuth(false);
+              setGoogleEmailInput('');
+              setGoogleNameInput('');
+            }}>
+              <input 
+                type="text" 
+                className="form-control" 
+                placeholder="Full Name" 
+                required 
+                value={googleNameInput} 
+                onChange={e => setGoogleNameInput(e.target.value)} 
+                style={{ fontSize: '13px', padding: '8px 12px', marginBottom: '8px' }}
+              />
+              <input 
+                type="email" 
+                className="form-control" 
+                placeholder="Google Email Address" 
+                required 
+                value={googleEmailInput} 
+                onChange={e => setGoogleEmailInput(e.target.value)} 
+                style={{ fontSize: '13px', padding: '8px 12px', marginBottom: '8px' }}
+              />
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '8px', fontSize: '13px', justifyContent: 'center' }}>
+                Sign in with custom Google Account
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- TOAST SYSTEM NOTIFICATION OUTLET --- */}
+      <div className="toast-container">
+        {toasts.map(t => (
+          <div key={t.id} className={`toast-notification ${t.type}`}>
+            <div className="toast-content">
+              <div className="toast-title">{t.title}</div>
+              <div className="toast-desc">{t.desc}</div>
+            </div>
+            <button className="toast-close" onClick={() => setToasts(prev => prev.filter(item => item.id !== t.id))}>
+              <X size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
